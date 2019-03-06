@@ -1,0 +1,226 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enndata-scheduler-config
+  namespace: k8splugin
+data:
+  config.yaml: |
+    apiVersion: componentconfig/v1alpha1
+    kind: KubeSchedulerConfiguration
+    schedulerName: enndata-scheduler
+    algorithmSource:
+      policy:
+        configMap:
+          namespace: k8splugin
+          name: enndata-scheduler-policy
+    leaderElection:
+      leaderElect: true
+      lockObjectName: enndata-scheduler
+      lockObjectNamespace: k8splugin
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enndata-scheduler-policy
+  namespace: k8splugin
+data:
+ policy.cfg : |
+  {
+    "kind" : "Policy",
+    "apiVersion" : "v1",
+    "predicates" : [ 
+      {"name" : "NoDiskConflict"},
+      {"name" : "MatchInterPodAffinity"},
+      {"name" : "CheckNodePIDPressure"},
+      {"name" : "PodToleratesNodeTaints"},
+      {"name" : "CheckVolumeBinding"},
+      {"name" : "GeneralPredicates"},
+      {"name" : "CheckNodeMemoryPressure"},
+      {"name" : "NoDiskConflict"},
+      {"name" : "CheckNodeDiskPressure"},
+      {"name" : "CheckNodeCondition"}
+    ],
+    "priorities" : [
+      {"name" : "LeastRequestedPriority", "weight" : 1},
+      {"name" : "BalancedResourceAllocation", "weight" : 1}, 
+      {"name" : "SelectorSpreadPriority", "weight" : 10},
+      {"name" : "InterPodAffinityPriority", "weight" : 1}, 
+      {"name" : "NodePreferAvoidPodsPriority", "weight" : 1},
+      {"name" : "NodeAffinityPriority", "weight" : 1},
+      {"name" : "TaintTolerationPriority", "weight" : 1},
+      {"name" : "ImageLocalityPriority", "weight" : 1}
+    ],
+     "extenders" : [{
+      "urlPrefix": "http://localhost:9090/scheduler",
+      "filterVerb": "predicates/hostpathpvdiskpressure",
+      "enableHttps": false,
+      "nodeCacheCapable": false,
+      "ignorable" : false
+    },
+    {
+      "urlPrefix": "http://localhost:9090/scheduler",
+      "filterVerb": "predicates/hostpathpvaffinity",
+      "enableHttps": false,
+      "nodeCacheCapable": false,
+      "ignorable" : false
+    },
+    {
+      "urlPrefix": "http://localhost:9090/scheduler",
+      "filterVerb": "predicates/namespacenodeselector",
+      "enableHttps": false,
+      "nodeCacheCapable": false,
+      "ignorable" : false
+    },
+    {
+      "urlPrefix": "http://localhost:9090/scheduler",
+      "prioritizeVerb": "priorities/hostpathpvdiskuse",
+      "weight": 1,
+      "enableHttps": false,
+      "nodeCacheCapable": false
+    },
+    {
+      "urlPrefix": "http://localhost:9090/scheduler",
+      "prioritizeVerb": "priorities/hostpathpvspread",
+      "weight": 1,
+      "enableHttps": false,
+      "nodeCacheCapable": false
+    }],
+    "hardPodAffinitySymmetricWeight" : 10
+  }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: enndata-scheduler
+  namespace: k8splugin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enndata-scheduler
+  namespace: k8splugin
+  labels:
+    app: enndata-scheduler
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: enndata-scheduler
+  template:
+    metadata:
+      labels:
+        app: enndata-scheduler
+    spec:
+      serviceAccountName: enndata-scheduler
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+             labelSelector:
+               matchExpressions:
+               - key: app
+                 operator: In
+                 values:
+                 - enndata-scheduler
+             namespaces:
+             - k8splugin
+             topologyKey: kubernetes.io/hostname
+            weight: 1
+      volumes:
+      - name: enndata-scheduler-config
+        configMap:
+          name: enndata-scheduler-config
+      - name: tls-certs
+        secret:
+          secretName: enndata-scheduler-tls-certs
+      containers:
+      - name: k8s-scheduler
+        image: ihub.helium.io:29006/library/k8s-scheduler:v1.11.2
+        imagePullPolicy: IfNotPresent
+        args:
+        - /kube-scheduler
+        - --config=/enndata-scheduler/config.yaml
+        - --v=2
+        volumeMounts:
+        - name: enndata-scheduler-config
+          mountPath: /enndata-scheduler
+      - name: enndata-scheduler
+        image: ihub.helium.io:29006/library/enndata-scheduler:v0.1.0
+        volumeMounts:
+          - name: tls-certs
+            mountPath: "/etc/tls-certs"
+            readOnly: true
+        command:
+        - /enndata-scheduler
+        - --address=:9090
+        - --nsselect-server-address=:9091
+        - --v=3
+        - --logtostderr=true
+        - --nsselect-server-cert-file=/etc/tls-certs/serverCert.pem
+        - --nsselect-server-key-file=/etc/tls-certs/serverKey.pem
+        - --nsselect-server-basic-auth-file=/etc/tls-certs/basicAuth
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enndata-scheduler-svc
+  namespace: k8splugin
+spec:
+  ports:
+    - port: 80
+      name: http
+      targetPort: 9090
+      nodePort: 29110
+    - port: 8843
+      name: nsselectserver
+      targetPort: 9091
+      nodePort: 29111
+  type: NodePort
+  selector:
+    app: enndata-scheduler
+    
+    
+# default scheduler config file
+#{
+#    "kind" : "Policy",
+#    "apiVersion" : "v1",
+#    "predicates" : [ 
+#      {"name" : "NoDiskConflict"},
+#      {"name" : "MatchInterPodAffinity"},
+#      {"name" : "CheckNodePIDPressure"},
+#      {"name" : "PodToleratesNodeTaints"},
+#      {"name" : "CheckVolumeBinding"},
+#      {"name" : "GeneralPredicates"},
+#      {"name" : "CheckNodeMemoryPressure"},
+#      {"name" : "NoDiskConflict"},
+#      {"name" : "CheckNodeDiskPressure"},
+#      {"name" : "CheckNodeCondition"}
+#    ],
+#    "priorities" : [
+#      {"name" : "LeastRequestedPriority", "weight" : 1},
+#      {"name" : "BalancedResourceAllocation", "weight" : 1}, 
+#      {"name" : "SelectorSpreadPriority", "weight" : 10},
+#      {"name" : "InterPodAffinityPriority", "weight" : 1}, 
+#      {"name" : "NodePreferAvoidPodsPriority", "weight" : 1},
+#      {"name" : "NodeAffinityPriority", "weight" : 1},
+#      {"name" : "TaintTolerationPriority", "weight" : 1},
+#      {"name" : "ImageLocalityPriority", "weight" : 1}
+#    ],
+#     "extenders" : [{
+#      "urlPrefix": "http://127.0.0.1:29110/scheduler",
+#      "filterVerb": "predicates/namespacenodeselector",
+#      "enableHttps": false,
+#      "nodeCacheCapable": false,
+#      "ignorable" : true
+#    }],
+#    "hardPodAffinitySymmetricWeight" : 10
+#}    

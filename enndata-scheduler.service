@@ -1,0 +1,23 @@
+[Unit]
+Description=Kubernetes Scheduler Plugin
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+After=apiserver-haproxy.service
+
+[Service]
+ExecStart=/opt/bin/enndata-scheduler \
+      --v=3  \
+      --stderrthreshold=info \
+	  --address=:6600 \
+	  --runmode=scheduleronly \
+	  --kubeconfig=/etc/kubernetes/local_kubeconfig \
+	  --log_dir=/var/log/kubernetes/enndata-scheduler \
+	  
+	
+Restart=on-failure
+LimitNOFILE=65536
+StandardOutput=null
+# StandardError=null
+
+[Install]
+WantedBy=multi-user.target
+ 

@@ -42,7 +42,7 @@ spec:
           secretName: enndata-scheduler-tls-certs
       containers:      
       - name: enndata-scheduler-nsnodeselector
-        image: ihub.helium.io:29006/library/enndata-scheduler:v0.1.0
+        image: ihub.helium.io:29006/library/enndata-scheduler:v1.0.0
         volumeMounts:
           - name: tls-certs
             mountPath: "/etc/tls-certs"

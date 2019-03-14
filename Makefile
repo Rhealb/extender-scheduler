@@ -1,13 +1,13 @@
 all: build
 
-TAG?=v0.1.0
+TAG?=v1.0.0
 REGISTRY?=ihub.helium.io:29006
 FLAGS=
 ENVVAR=
 GOOS?=linux
 ROOTPATH=`pwd` 
 BUILDGOPATH=/tmp/k8splugin-build
-BUILDPATH=$(BUILDGOPATH)/src/k8s-plugins/extender-scheduler
+BUILDPATH=$(BUILDGOPATH)/src/github.com/Rhealb/extender-scheduler
 MASTERS?="127.0.0.1"
 BINMOVEPATH="/opt/bin"
 SVCMOVEPATH="/etc/systemd/system/"
@@ -21,10 +21,10 @@ deps:
 	@go get github.com/tools/godep
 	
 buildEnvClean:
-	@rm $(BUILDPATH) 1>/dev/null 2>/dev/null || true
+	@rm -rf $(BUILDGOPATH) 1>/dev/null 2>/dev/null || true
 
 buildEnv: buildEnvClean
-	@mkdir -p $(BUILDGOPATH)/src/k8s-plugins/ 1>/dev/null 2>/dev/null
+	@mkdir -p $(BUILDGOPATH)/src/github.com/Rhealb/ 1>/dev/null 2>/dev/null
 	@ln -s $(ROOTPATH) $(BUILDPATH)
 	
 build: buildEnv clean deps 
@@ -38,8 +38,15 @@ ifndef REGISTRY
 endif
 	docker build --pull -t ${REGISTRY}/library/enndata-scheduler:${TAG} .
 	docker push ${REGISTRY}/library/enndata-scheduler:${TAG}
-	docker build -t ${REGISTRY}/library/k8s-scheduler:v1.11.2 ./k8s-scheduler/
-	docker push ${REGISTRY}/library/k8s-scheduler:v1.11.2
+
+
+docker-k8s-scheduler:
+ifndef REGISTRY
+	ERR = $(error REGISTRY is undefined)
+	$(ERR)
+endif
+	docker build -t ${REGISTRY}/library/k8s-scheduler:v1.13.4 ./k8s-scheduler/
+	docker push ${REGISTRY}/library/k8s-scheduler:v1.13.4
 
 deletedeploy:
 	@kubectl delete -f deploy/enndata-scheduler.yaml 1>/dev/null 2>/dev/null || true

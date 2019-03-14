@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"k8s-plugins/extender-scheduler/pkg/algorithm/predicate"
-	"k8s-plugins/extender-scheduler/pkg/algorithm/prioritize"
+	"github.com/Rhealb/extender-scheduler/pkg/algorithm/predicate"
+	"github.com/Rhealb/extender-scheduler/pkg/algorithm/prioritize"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"

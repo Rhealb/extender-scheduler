@@ -2,8 +2,9 @@ package prioritize
 
 import (
 	"fmt"
-	"k8s-plugins/extender-scheduler/pkg/algorithm"
 	"sync"
+
+	"github.com/Rhealb/extender-scheduler/pkg/algorithm"
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"

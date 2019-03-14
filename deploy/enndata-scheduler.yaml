@@ -135,7 +135,7 @@ spec:
           secretName: enndata-scheduler-tls-certs
       containers:
       - name: k8s-scheduler
-        image: ihub.helium.io:29006/library/k8s-scheduler:v1.11.2
+        image: ihub.helium.io:29006/library/k8s-scheduler:v1.13.4
         imagePullPolicy: IfNotPresent
         args:
         - /kube-scheduler
@@ -145,7 +145,7 @@ spec:
         - name: enndata-scheduler-config
           mountPath: /enndata-scheduler
       - name: enndata-scheduler
-        image: ihub.helium.io:29006/library/enndata-scheduler:v0.1.0
+        image: ihub.helium.io:29006/library/enndata-scheduler:v1.0.0
         volumeMounts:
           - name: tls-certs
             mountPath: "/etc/tls-certs"

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	hostpath "k8s-plugins/csi-plugin/hostpathpv/pkg/hostpath"
-	"k8s-plugins/csi-plugin/hostpathpv/pkg/hostpath/xfsquotamanager"
-	"k8s-plugins/csi-plugin/hostpathpv/pkg/hostpath/xfsquotamanager/common"
+	hostpath "github.com/Rhealb/csi-plugin/hostpathpv/pkg/hostpath"
+	"github.com/Rhealb/csi-plugin/hostpathpv/pkg/hostpath/xfsquotamanager"
+	"github.com/Rhealb/csi-plugin/hostpathpv/pkg/hostpath/xfsquotamanager/common"
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"

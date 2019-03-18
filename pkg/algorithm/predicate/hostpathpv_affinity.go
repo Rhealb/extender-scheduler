@@ -21,6 +21,7 @@ type HostPathPVAffinity struct {
 	pvInfo    *algorithm.CachedPersistentVolumeInfo
 	pvcInfo   *algorithm.CachedPersistentVolumeClaimInfo
 	podInfo   *algorithm.CachedPodInfo
+	clientset *kubernetes.Clientset
 	hasSynced func() bool
 }
 
@@ -35,6 +36,7 @@ func (hppva *HostPathPVAffinity) Init(clientset *kubernetes.Clientset, informerF
 	hppva.pvInfo = &algorithm.CachedPersistentVolumeInfo{PersistentVolumeLister: pvInformer.Lister()}
 	hppva.pvcInfo = &algorithm.CachedPersistentVolumeClaimInfo{PersistentVolumeClaimLister: pvcInformer.Lister()}
 	hppva.podInfo = &algorithm.CachedPodInfo{PodLister: podInformer.Lister()}
+	hppva.clientset = clientset
 	pvSynced := pvInformer.Informer().HasSynced
 	pvcSynced := pvcInformer.Informer().HasSynced
 	podSynced := podInformer.Informer().HasSynced
@@ -63,7 +65,7 @@ func (hppva *HostPathPVAffinity) podPVMatchNode(pod *v1.Pod, node *v1.Node, podV
 	switch {
 	case isShare && isKeep: // keep false
 		if len(mountInfos) == 0 { // pv has no mount info
-			nodesMap, err := algorithm.GetHostPathPVUsedNodeMap(pv, hppva.podInfo)
+			nodesMap, err := algorithm.GetHostPathPVUsedNodeMap(hppva.clientset, pv, hppva.podInfo)
 			if err != nil {
 				return false, newPredicateError(hppva.Name(), fmt.Sprintf("node:%s, GetHostPathPVUsedNodeMap err:%v", node.Name, err.Error))
 			}

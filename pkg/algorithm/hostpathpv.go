@@ -13,7 +13,8 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
-	//	corelisters "k8s.io/client-go/listers/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 func IsHostPathPV(pv *v1.PersistentVolume) bool {
@@ -62,7 +63,7 @@ func IsKeepHostPathPV(pv *v1.PersistentVolume) bool {
 	return false
 }
 
-func GetHostPathPVUsedNodeMap(pv *v1.PersistentVolume, podInfo PodInfo) (map[string]bool, error) {
+func GetHostPathPVUsedNodeMap(clientset *kubernetes.Clientset, pv *v1.PersistentVolume, podInfo PodInfo) (map[string]bool, error) {
 	ret := make(map[string]bool)
 	if pv.Spec.ClaimRef == nil {
 		return ret, fmt.Errorf("pv %s has not bound", pv.Name)
@@ -74,6 +75,12 @@ func GetHostPathPVUsedNodeMap(pv *v1.PersistentVolume, podInfo PodInfo) (map[str
 	for _, pod := range pods {
 		if pod.Spec.NodeName != "" {
 			ret[pod.Spec.NodeName] = true
+		} else {
+			if curPod, err := clientset.Core().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{}); err != nil {
+				return ret, fmt.Errorf("get pod %s:%s err:%v", pod.Namespace, pod.Name, err)
+			} else if curPod.Spec.NodeName != "" {
+				ret[curPod.Spec.NodeName] = true
+			}
 		}
 	}
 	return ret, nil

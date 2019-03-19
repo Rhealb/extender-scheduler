@@ -194,26 +194,23 @@ func GetNodeHostPathPVMountInfo(nodeName string, pvInfo PersistentVolumeInfo, po
 							ret.MountInfos = append(ret.MountInfos, mountInfo)
 						}
 					}
-					if podMaps, err := GetHostPathPVUsedPodMap(pv, podInfo, nodeName); err != nil {
-						return ret, fmt.Errorf("GetHostPathPVUsedPodMap of pv %s on node %s err:%v", pv.Name, nodeName, err)
-					} else {
-						if IsSharedHostPathPV(pv) {
-							if len(info.MountInfos) == 0 && len(podMaps) > 0 {
-								ret.MountInfos = append(ret.MountInfos, hostpath.MountInfo{
-									HostPath:        "",
-									VolumeQuotaSize: capacity,
-								})
-								glog.V(4).Infof("share pv %s on node %s has no mount info has has some pod on it", pv.Name, nodeName)
-							}
-						} else if len(podMaps) > len(info.MountInfos) { // some pod not update it's quota path info
-							for i := 0; i < len(podMaps)-len(info.MountInfos); i++ {
-								ret.MountInfos = append(ret.MountInfos, hostpath.MountInfo{
-									HostPath:        "",
-									VolumeQuotaSize: capacity,
-								})
-							}
-							glog.V(4).Infof("share pv %s on node %s has %d mount info but run pod %d", pv.Name, nodeName, len(info.MountInfos), len(podMaps))
+					podMaps, _ := GetHostPathPVUsedPodMap(pv, podInfo, nodeName) // not care the error
+					if IsSharedHostPathPV(pv) {
+						if len(info.MountInfos) == 0 && len(podMaps) > 0 {
+							ret.MountInfos = append(ret.MountInfos, hostpath.MountInfo{
+								HostPath:        "",
+								VolumeQuotaSize: capacity,
+							})
+							glog.V(4).Infof("share pv %s on node %s has no mount info has has some pod on it", pv.Name, nodeName)
 						}
+					} else if len(podMaps) > len(info.MountInfos) { // some pod not update it's quota path info
+						for i := 0; i < len(podMaps)-len(info.MountInfos); i++ {
+							ret.MountInfos = append(ret.MountInfos, hostpath.MountInfo{
+								HostPath:        "",
+								VolumeQuotaSize: capacity,
+							})
+						}
+						glog.V(4).Infof("share pv %s on node %s has %d mount info but run pod %d", pv.Name, nodeName, len(info.MountInfos), len(podMaps))
 					}
 					break
 				}

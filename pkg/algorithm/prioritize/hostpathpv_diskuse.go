@@ -122,11 +122,11 @@ func (hppvdu *HostPathPVDiskUse) NodesScoring(pod *v1.Pod, nodes []v1.Node) (*sc
 	}
 	wg.Wait()
 	if len(errs) != 0 {
-		glog.Error("NodesScoring pod %s:%s err:%v", pod.Namespace, pod.Name, errors.NewAggregate(errs))
+		glog.Errorf("NodesScoring pod %s:%s err:%v", pod.Namespace, pod.Name, errors.NewAggregate(errs))
 		return &priorityList, errors.NewAggregate(errs)
 	}
 	if err := hppvdu.reduceScoringNode(pod, priorityList); err != nil {
-		glog.Error("NodesScoring reduceScoringNode pod %s:%s err:%v", pod.Namespace, pod.Name, err)
+		glog.Errorf("NodesScoring reduceScoringNode pod %s:%s err:%v", pod.Namespace, pod.Name, err)
 		return &priorityList, fmt.Errorf("reduceScoringNode for pod %s:%s err:%v", pod.Namespace, pod.Name, err)
 	}
 	return &priorityList, nil
